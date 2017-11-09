@@ -16,16 +16,22 @@ list_data = []
 
 def gen_urls_list(products_list, regions_list, brands_list):
 
-    url_params = {}  # Dictionary
-    url_list = []  # List
+    # Old way using for loop
 
-    for i in itertools.product(products_list, brands_list, regions_list):
-        print(i)
-        # used *i to convert list/tuple to positional arguments
-        final_url = "http://www.fuelwatch.wa.gov.au/fuelwatch/fuelWatchRSS?Product={}&Brand={}".format(*i)
+    # url_list = []
+    # for i in itertools.product(products_list, brands_list, regions_list):
+    #     # used *i to convert list/tuple to positional arguments
+    #     # final_url = "http://www.fuelwatch.wa.gov.au/fuelwatch/fuelWatchRSS?Product={}&Brand={}".format(*i)
+    #
+    #     # print(final_url)
+    #     url_list.append("http://www.fuelwatch.wa.gov.au/fuelwatch/fuelWatchRSS?Product={}&Brand={}".format(*i))
+    # -------------
 
-        print(final_url)
-        url_list.append(final_url)
+    # New, better way using for list comprehension
+    url_list = [
+        "http://www.fuelwatch.wa.gov.au/fuelwatch/fuelWatchRSS?Product={}&Brand={}".format(*i)
+        for i in itertools.product(products_list, brands_list, regions_list)
+    ]
 
     print("======")
     print("# of URLs to process: " + str(len(url_list)))
@@ -76,35 +82,25 @@ def gen_html_table_listdata(cleaned_xml_data):
 
     counter = 0
     # Some elements in the XML string are empty, using try: as a lazy way of dealing with them.
-    try:
-        if root.channel.item:
-            list_data_temp = []
-            list_data_all = []
-            for e in root.channel.item:
 
-                dict_data = {
-                    'Price': e.price.text,
-                    'Location': e.location.text,
-                    'Address': e.address.text,
-                    'phone': e.phone.text,
-                    'brand': e.brand.text,
-                    'date': e.date.text
-                }
+    if hasattr(root.channel, 'item'):
+        for e in root.channel.item:
 
-                counter = counter + 1
+            dict_data = {
+                'Price': e.price.text,
+                'Location': e.location.text,
+                'Address': e.address.text,
+                'phone': e.phone.text,
+                'brand': e.brand.text,
+                'date': e.date.text
+            }
 
-                if debug:
-                    print(dict_data)
+            counter = counter + 1
 
-                list_data.append(dict_data)
+            if debug:
+                print(dict_data)
 
-            # list_data_all.append(list_data_temp)
-
-            # return list_data_all
-
-    except Exception as e:
-        # print(e)
-        return None
+            list_data.append(dict_data)
 
     return counter
 
@@ -179,12 +175,13 @@ def run():
     url_list = gen_urls_list(products, regions, brands)
 
     url_list_count_total = len(url_list)
-    url_list_counter = 0
 
     # 2. Get FuelWatch xml data for each URL
-    for each_url in url_list:
-        url_list_counter = url_list_counter + 1
 
+    # for each_url in url_list:
+    #     url_list_counter += 1
+
+    for url_list_counter, each_url in enumerate(url_list):
         print("Processing " + str(url_list_counter) + " of " + str(url_list_count_total))
         raw_xml_data = get_fuelwatch_xml(each_url)
 
@@ -192,10 +189,10 @@ def run():
         cleaned_fuelwatch_xml_data = clean_fuelwatch_xml_data(raw_xml_data.content)
 
         # 4. Create the table content (as LIST)
-        count = gen_html_table_listdata(cleaned_fuelwatch_xml_data)
+        row_count = gen_html_table_listdata(cleaned_fuelwatch_xml_data)
 
-        if count:
-            total_count = total_count + count
+        if row_count:
+            total_count = total_count + row_count
 
     # 5. Create the HTML output
     gen_html(total_count)
@@ -205,6 +202,6 @@ run()
 
 """
 Comments on above code/approach:
-- ?
+- Attempted to break code into various functions vs one big function
 
 """
